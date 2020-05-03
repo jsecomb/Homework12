@@ -131,7 +131,7 @@ async function addDept() {
         }
     ])
     .then(deptAnswers => {
-        connection.query(`INSERT INTO departments (name) VALUES ("${deptAnswers.name}")`,
+        connection.query(`INSERT INTO departments (department) VALUES ("${deptAnswers.name}")`,
             function (err, res) {
                 if (err) throw err;
             }
@@ -159,7 +159,7 @@ async function addRole() {
                 message: "Select the department of the role",
                 choices: departments.map(depts => {
                     return {
-                        name: depts.name,
+                        name: depts.department,
                         value: depts.id
                     }
                 })
@@ -224,6 +224,54 @@ async function addEmployee() {
         })
     })
 }
+
+async function updateRole() {
+    getData("employees", function (employees) {
+        let roleAnswers = inquirer.prompt([
+            {
+                type: "list",
+                name: "empToChange",
+                message: "Select the name of the employee who's role you want to change",
+                choices: employees.map(emp => {
+                    return {
+                        name: emp.first_name + " " + emp.last_name,
+                        value: emp.id
+                    }
+                })
+            }
+        ])
+        .then(roleAnswers => {
+            assignRole(roleAnswers.empToChange);
+        })
+    })
+}
+
+function assignRole(assignee) {
+    getData("roles", function (roles) {
+        let roleInput = inquirer.prompt([
+            {
+                type: "list",
+                name: "newRole",
+                message: "Select the new role for the selected employee",
+                choices: roles.map(role => {
+                    return {
+                        name: role.title,
+                        value: role.id
+                    }
+                })
+            }
+        ])
+        .then(roleInput => {
+            connection.query(`UPDATE employees SET role_id = ${roleInput.newRole} where id = ${assignee}`,
+                function (err, res) {
+                    if (err) throw err;
+                }
+            )
+            mainPrompt();
+        })
+    })
+}
+
 
 function getData(table, cb){
     connection.query(`SELECT * FROM ${table}`, function (err, data) {
