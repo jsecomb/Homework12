@@ -28,10 +28,31 @@ CREATE TABLE employees (
 );
 
 INSERT INTO departments (department)
+VALUES ("Owner");
+INSERT INTO departments (department)
 VALUES ("Accounting");
+INSERT INTO departments (department)
+VALUES ("Cheese Making");
+INSERT INTO departments (department)
+VALUES ("Janitorial");
+
 INSERT INTO roles (title, salary, department_id)
-VALUES ("Accountant", 75000, 1);
+VALUES ("Owner", 25000, 1);
+INSERT INTO roles (title, salary, department_id)
+VALUES ("Accountant", 75000, 2);
+INSERT INTO roles (title, salary, department_id)
+VALUES ("Cheese Maker", 45000, 3);
+INSERT INTO roles (title, salary, department_id)
+VALUES ("Janitor", 55000, 4);
+
 INSERT INTO employees (first_name, last_name, role_id, manager_id)
 VALUES ("Randy", "McDorgald", 1, 1);
+INSERT INTO employees (first_name, last_name, role_id, manager_id)
+VALUES ("Carol", "McDorgald", 2, 1);
+INSERT INTO employees (first_name, last_name, role_id, manager_id)
+VALUES ("Debo", "Floof", 3, 1);
+INSERT INTO employees (first_name, last_name, role_id, manager_id)
+VALUES ("Bobby", "Henry", 4, 2);
+
 
 

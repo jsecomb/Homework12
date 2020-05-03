@@ -1,17 +1,6 @@
-var express = require("express");
 var mysql = require("mysql");
 var inquirer = require("inquirer");
 var cTable = require("console.table");
-
-var app = express();
-
-// Set the port of our application
-// process.env.PORT lets the port be set by Heroku
-var PORT = process.env.PORT || 7070;
-
-// Sets up the Express app to handle data parsing
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
 
 var connection = mysql.createConnection({
   host: "localhost",
@@ -30,11 +19,12 @@ connection.connect(function(err) {
   console.log("connected as id " + connection.threadId);
 });
 
-// Start our server so that it can begin listening to client requests.
-app.listen(PORT, function() {
-  // Log (server-side) when our server has started
-  console.log("Server listening on: http://localhost:" + PORT);
-});
+function getData(table, cb){
+    connection.query(`SELECT * FROM ${table}`, function (err, data) {
+        if (err) throw err
+        cb(data)
+    });
+}
 
 async function mainPrompt(){
     const requestType = await inquirer.prompt([
@@ -42,18 +32,21 @@ async function mainPrompt(){
             type: "list",
             name: "requestChoice",
             message: "What would you like to do?",
-            choices: ["Add departments, roles, or employees","View departments, roles, or employees","Update employee roles"]
+            choices: ["Add departments, roles, or employees","View departments, roles, employees","Update employee roles or managers", "View employees by manager"]
         }
     ])
     .then(requestType => {
         if (requestType.requestChoice === "Add departments, roles, or employees"){
             addData();
         }
-        else if (requestType.requestChoice === "View departments, roles, or employees"){
+        else if (requestType.requestChoice === "View departments, roles, employees"){
             viewData();
         }
-        else if (requestType.requestChoice === "Update employee roles"){
-            updateRole();
+        else if (requestType.requestChoice === "Update employee roles or managers"){
+            updateData();
+        }
+        else if (requestType.requestChoice === "View employees by manager"){
+            mgrData();
         }
     });   
 }
@@ -64,15 +57,15 @@ async function viewData() {
             type: "list",
             name: "dataChoice",
             message: "What would you like to view?",
-            choices: ["departments", "roles", "employees"]
+            choices: ["departments", "roles", "employees", "employees by manager"]
         }
     ])
     .then(dataType => {
         if (dataType.dataChoice === "employees") {
             connection.query(`
-            SELECT first_name, last_name, title, salary, department from employees
-            RIGHT JOIN roles ON employees.role_id=roles.id
-            RIGHT JOIN departments ON roles.department_id=departments.id;
+            SELECT first_name, last_name, title, salary, department, manager_id FROM employees
+            INNER JOIN roles ON employees.role_id=roles.id
+            INNER JOIN departments ON roles.department_id=departments.id
             `, function (err, data) {
                 if (err) throw err
                 console.log("");
@@ -98,6 +91,32 @@ async function viewData() {
         }
     })
     mainPrompt();
+}
+
+async function mgrData() {
+    getData("employees", function (employees) {
+        let mgrChoice = inquirer.prompt([
+            {
+                type: "list",
+                name: "managerId",
+                message: "Select a manager",
+                choices: employees.map(emp => {
+                    return {
+                        name: emp.first_name + " " + emp.last_name,
+                        value: emp.id
+                    }
+                })
+            }
+        ])
+        .then(mgrChoice => {
+            connection.query(`SELECT first_name, last_name from employees WHERE manager_id=${mgrChoice.managerId};`, function (err, data) {
+                if (err) throw err
+                console.log("");
+                console.table(data);
+            });
+            mainPrompt();
+        })
+    })
 }
 
 async function addData() {
@@ -136,6 +155,7 @@ async function addDept() {
                 if (err) throw err;
             }
         )
+        console.log(`${deptAnswers.name} department has been added.`)
         mainPrompt();
     })
 }
@@ -171,6 +191,7 @@ async function addRole() {
                         if (err) throw err;
                     }
                 )
+                console.log(`${roleAnswers.title} role has been added.`)
                 mainPrompt();
             })
     })
@@ -219,10 +240,30 @@ async function addEmployee() {
                             if (err) throw err;
                         }
                     )
+                    console.log(`${empAnswers.firstName} ${empAnswers.lastName} has been added as an employee.`)
                     mainPrompt();
                 })
         })
     })
+}
+
+async function updateData() {
+    let updateAnswers = inquirer.prompt([
+        {
+            type: "list",
+            name: "updateChoice",
+            message: "Would you like to update an Employee's role or manager?",
+            choices:["Role", "Manager"]
+        }
+    ])
+        .then(updateAnswers => {
+            if (updateAnswers.updateChoice === "Role"){
+                updateRole();
+            }
+            else {
+                updateManager();
+            }
+        })
 }
 
 async function updateRole() {
@@ -267,17 +308,51 @@ function assignRole(assignee) {
                     if (err) throw err;
                 }
             )
+            console.log(`Employee's role has been changed.`)
             mainPrompt();
         })
     })
 }
 
+async function updateManager() {
+    getData("employees", function (employees) {
+        let mgrAssign = inquirer.prompt([
+            {
+                type: "list",
+                name: "empToChange",
+                message: "Select the name of the employee who's manager you want to change",
+                choices: employees.map(emp1 => {
+                    return {
+                        name: emp1.first_name + " " + emp1.last_name,
+                        value: emp1.id
+                    }
+                })
+            },
+            {
+                type: "list",
+                name: "newMgr",
+                message: "Select the new manager for the selected employee",
+                choices: employees.map(emp2 => {
+                    return {
+                        name: emp2.first_name + " " + emp2.last_name,
+                        value: emp2.id
+                    }
+                })
+            }
 
-function getData(table, cb){
-    connection.query(`SELECT * FROM ${table}`, function (err, data) {
-        if (err) throw err
-        cb(data)
-    });
+        ])
+        .then(mgrAssign => {
+            connection.query(`UPDATE employees SET manager_id = ${mgrAssign.newMgr} where id = ${mgrAssign.empToChange}`,
+                function (err, res) {
+                    if (err) throw err;
+                }
+            )
+        console.log(`You have changed the selected employee's manager`);
+        mainPrompt();
+        })
+    })
 }
+
+        
 
 mainPrompt();
