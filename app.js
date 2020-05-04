@@ -32,7 +32,7 @@ async function mainPrompt(){
             type: "list",
             name: "requestChoice",
             message: "What would you like to do?",
-            choices: ["Add departments, roles, or employees","View departments, roles, employees","Update employee roles or managers", "View employees by manager"]
+            choices: ["Add departments, roles, or employees","View departments, roles, employees","Update employee roles or managers", "View employees by manager", "View department budgets"]
         }
     ])
     .then(requestType => {
@@ -47,6 +47,9 @@ async function mainPrompt(){
         }
         else if (requestType.requestChoice === "View employees by manager"){
             mgrData();
+        }
+        else if (requestType.requestChoice === "View department budgets"){
+            deptBudget();
         }
     });   
 }
@@ -176,14 +179,6 @@ async function addRole() {
 async function addEmployee() {
     getData("employees", function (employees) {
         getData("roles", function (roles) {
-            const mgrOptions = employees.map(emp => {
-                return {
-                    name: emp.first_name + " " +emp.last_name,
-                    value: emp.id
-                }
-            });
-            mgrOptions.push({name: 'none', value: null});
-            console.log(mgrOptions);
             let empAnswers = inquirer.prompt([
                 {
                     type: "input",
@@ -210,7 +205,12 @@ async function addEmployee() {
                     type: "list",
                     name: "managerId",
                     message: "Select the Employee's manager",
-                    choices: mgrOptions
+                    choices: employees.map(emp => {
+                        return {
+                            name: emp.first_name + " " +emp.last_name,
+                            value: emp.id
+                        }
+                    })
                 }
             ])
                 .then(empAnswers => {
@@ -362,6 +362,39 @@ async function mgrData() {
     })
 }
 
-        
+async function deptBudget(){
+    getData("departments", function(departments){
+        let deptBudget = inquirer.prompt([
+            {
+                type: "list",
+                name: "deptName",
+                message: "Select the name of the department you would like to view the budget of",
+                choices: departments.map(dept => {
+                    return {
+                        name: dept.department,
+                        value: dept.id
+                    }
+                })
+            }            
+        ])
+        .then(deptBudget => {
+            let budget = 0;
+            connection.query(`
+                SELECT salary
+                FROM employees
+                LEFT JOIN roles ON role_id=roles.id
+                LEFT JOIN departments ON roles.department_id=departments.id
+                WHERE department_id=${deptBudget.deptName};`, function (err, data) {
+                    if (err) throw err
+                    for (let i=0; i<data.length; i++){
+                        budget += data[i].salary
+                    }
+                    console.log(`The total budget of the department is ${budget}`);
+                }
+            )
+            mainPrompt();
+        })
+    })
+}
 
 mainPrompt();

@@ -50,7 +50,9 @@ VALUES ("Randy", "McDorgald", 1, 1);
 INSERT INTO employees (first_name, last_name, role_id, manager_id)
 VALUES ("Carol", "McDorgald", 2, 1);
 INSERT INTO employees (first_name, last_name, role_id, manager_id)
-VALUES ("Debo", "Floof", 3, 1);
+VALUES ("Jerry", "Dweebo", 3, 1);
+INSERT INTO employees (first_name, last_name, role_id, manager_id)
+VALUES ("Debo", "Floof", 3, 3);
 INSERT INTO employees (first_name, last_name, role_id, manager_id)
 VALUES ("Bobby", "Henry", 4, 2);
 
