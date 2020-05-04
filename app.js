@@ -19,7 +19,7 @@ connection.connect(function(err) {
   console.log("connected as id " + connection.threadId);
 });
 
-function getData(table, cb){
+function getData(table, cb){ 
     connection.query(`SELECT * FROM ${table}`, function (err, data) {
         if (err) throw err
         cb(data)
@@ -51,25 +51,27 @@ async function mainPrompt(){
     });   
 }
 
-async function viewData() {
+async function viewData() { 
     let dataType = await inquirer.prompt([
         {
             type: "list",
             name: "dataChoice",
             message: "What would you like to view?",
-            choices: ["departments", "roles", "employees", "employees by manager"]
+            choices: ["departments", "roles", "employees"]
         }
     ])
     .then(dataType => {
         if (dataType.dataChoice === "employees") {
             connection.query(`
-            SELECT first_name, last_name, title, salary, department, manager_id FROM employees
-            INNER JOIN roles ON employees.role_id=roles.id
-            INNER JOIN departments ON roles.department_id=departments.id
+            SELECT CONCAT(e.first_name, ' ' ,e.last_name) AS 'employee', CONCAT(m.first_name, ' ' ,m.last_name) AS 'manager', title, department, salary
+            FROM employees e
+            LEFT JOIN employees m ON m.id = e.manager_id
+            LEFT JOIN roles ON e.role_id=roles.id
+            LEFT JOIN departments ON roles.department_id=departments.id;
             `, function (err, data) {
                 if (err) throw err
                 console.log("");
-                console.log(`-----------------   ${dataType.dataChoice.toUpperCase()}   -----------------`);
+                console.log(`---------------------------   ${dataType.dataChoice.toUpperCase()}   --------------------------`);
                 console.table(data);
             });
         }
@@ -91,32 +93,6 @@ async function viewData() {
         }
     })
     mainPrompt();
-}
-
-async function mgrData() {
-    getData("employees", function (employees) {
-        let mgrChoice = inquirer.prompt([
-            {
-                type: "list",
-                name: "managerId",
-                message: "Select a manager",
-                choices: employees.map(emp => {
-                    return {
-                        name: emp.first_name + " " + emp.last_name,
-                        value: emp.id
-                    }
-                })
-            }
-        ])
-        .then(mgrChoice => {
-            connection.query(`SELECT first_name, last_name from employees WHERE manager_id=${mgrChoice.managerId};`, function (err, data) {
-                if (err) throw err
-                console.log("");
-                console.table(data);
-            });
-            mainPrompt();
-        })
-    })
 }
 
 async function addData() {
@@ -200,6 +176,14 @@ async function addRole() {
 async function addEmployee() {
     getData("employees", function (employees) {
         getData("roles", function (roles) {
+            const mgrOptions = employees.map(emp => {
+                return {
+                    name: emp.first_name + " " +emp.last_name,
+                    value: emp.id
+                }
+            });
+            mgrOptions.push({name: 'none', value: null});
+            console.log(mgrOptions);
             let empAnswers = inquirer.prompt([
                 {
                     type: "input",
@@ -226,12 +210,7 @@ async function addEmployee() {
                     type: "list",
                     name: "managerId",
                     message: "Select the Employee's manager",
-                    choices: employees.map(emp => {
-                        return {
-                            name: emp.first_name + " " +emp.last_name,
-                            value: emp.id
-                        }
-                    })
+                    choices: mgrOptions
                 }
             ])
                 .then(empAnswers => {
@@ -349,6 +328,36 @@ async function updateManager() {
             )
         console.log(`You have changed the selected employee's manager`);
         mainPrompt();
+        })
+    })
+}
+
+async function mgrData() {
+    getData("employees", function (employees) {
+        let mgrChoice = inquirer.prompt([
+            {
+                type: "list",
+                name: "managerId",
+                message: "Select a manager",
+                choices: employees.map(emp => {
+                    return {
+                        name: emp.first_name + " " + emp.last_name,
+                        value: emp.id
+                    }
+                })
+            }
+        ])
+        .then(mgrChoice => {
+            connection.query(`
+            SELECT CONCAT(m.first_name, ' ' ,m.last_name) AS 'manager', CONCAT(e.first_name, ' ' ,e.last_name) AS 'employee'
+            FROM employees e
+            INNER JOIN employees m ON m.id = e.manager_id
+            WHERE m.id=${mgrChoice.managerId};`, function (err, data) {
+                if (err) throw err
+                console.log("");
+                console.table(data);
+            });
+            mainPrompt();
         })
     })
 }
