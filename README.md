@@ -2,9 +2,9 @@
 
 Employee Tracker App
     
-    [![HitCount](http://hits.dwyl.com/{jsecomb}/{Homework12}.svg)](http://hits.dwyl.com/{jsecomb}/{Homework12})
-    ![GitHub top language](https://img.shields.io/github/languages/top/jsecomb/Homework12?style=flat-square)
-    ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/jsecomb/Homework12?style=flat-square)
+[![HitCount](http://hits.dwyl.com/{jsecomb}/{Homework12}.svg)](http://hits.dwyl.com/{jsecomb}/{Homework12})
+![GitHub top language](https://img.shields.io/github/languages/top/jsecomb/Homework12?style=flat-square)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/jsecomb/Homework12?style=flat-square)
     
 ## Description: 
     
